@@ -10,8 +10,8 @@
 #include "cnn.h"
 
 const int PARALLEL = 30;
-const int num_buffering = 2;
-const int batch_num = 15;
+const int num_buffering = 6;
+const int batch_num = 5;
 
 #define CHECK_ERROR(err) \
     if(err != CL_SUCCESS) { \
@@ -185,7 +185,7 @@ static void convolution_layer(float* inputs, float* outputs, float* filters, flo
     size_t global_size[] = { d1 * batch_num, d2 * n * n };
     size_t local_size[] = { d1, 1 };
     cl_event kernel_event[4] = { NULL, NULL, NULL, NULL };
-    for (int i = 0; i < num_buffering / 2; i+=2) {
+    for (int i = 0; i < num_buffering; i+=2) {
         int k = i + 1;
 
         float* input1 = inputs + i * batch_num * d1 * n * n;
