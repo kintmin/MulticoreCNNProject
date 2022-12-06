@@ -45,7 +45,7 @@ void* read_bytes(const char* fn, size_t n) {
  */
 const int IMAGE_CHW = 3 * 32 * 32 * sizeof(float);
 float* read_images(size_t n) {
-	return (float*)read_bytes("cifar10_image.bin", n * IMAGE_CHW);
+	return (float*)read_bytes("images.bin", n * IMAGE_CHW);
 }
 
 /*
@@ -53,7 +53,7 @@ float* read_images(size_t n) {
  * 10000 * sizeof(int) = 40000 bytes are expected.
  */
 int* read_labels(size_t n) {
-	return (int*)read_bytes("cifar10_label.bin", n * sizeof(int));
+	return (int*)read_bytes("labels.bin", n * sizeof(int));
 }
 
 /*
@@ -120,9 +120,8 @@ float** slice_network(float* p) {
 		2. 프로젝트 속성 - C/C++ - 일반 - 추가포함디렉토리 (기존의 것에 추가)
 */
 int main(int argc, char** argv) {
-	if (argc != 3) {
+	if (argc != 3) 
 		print_usage_and_exit(argv);
-	}
 
 	int num_images = atoi(argv[1]);
 	float* images = read_images(num_images);
@@ -130,8 +129,8 @@ int main(int argc, char** argv) {
 	float** network_sliced = slice_network(network);
 	int* labels = (int*)calloc(num_images, sizeof(int));
 	float* confidences = (float*)calloc(num_images, sizeof(float));
-	time_t start, end;
 
+	time_t start;
 	printf("OpenCL_CNN\tImages: %4d\n", num_images);
 	cnn_init();
 	start = clock();

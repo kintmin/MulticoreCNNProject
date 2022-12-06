@@ -7,9 +7,9 @@
 
 int compare(char* argv) {
 
-	FILE* f0 = fopen("answer.out", "r");
+	FILE* f0 = fopen("answer.txt", "r");
 	if (!f0) {
-		fprintf(stderr, "%s doesn't exist.\n", "answer.out");
+		fprintf(stderr, "%s doesn't exist.\n", "answer.txt");
 		exit(EXIT_FAILURE);
 	}
 	FILE* f1 = fopen(argv, "r");
