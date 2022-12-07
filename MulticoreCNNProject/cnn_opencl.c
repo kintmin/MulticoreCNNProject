@@ -101,8 +101,8 @@ cl_program convolution_program;
 cl_program pooling_program;
 cl_program fc_program;
 cl_kernel convolution_kernel, convolution_kernel2;
-cl_kernel pooling_kernel;
-cl_kernel fc_kernel;
+cl_kernel pooling_kernel, pooling_kernel2;
+cl_kernel fc_kernel, fc_kernel2;
 cl_mem buf1, buf1_1, buf2, buf2_1, buf3, buf4;
 
 void cnn_init() {
@@ -148,11 +148,11 @@ void cnn_init() {
     convolution_kernel = clCreateKernel(convolution_program, "convolution", &err);    CHECK_ERROR(err);
     convolution_kernel2 = clCreateKernel(convolution_program, "convolution", &err);    CHECK_ERROR(err);
 
-    pooling_kernel = clCreateKernel(pooling_program, "pooling", &err);
-    CHECK_ERROR(err);
+    pooling_kernel = clCreateKernel(pooling_program, "pooling", &err);    CHECK_ERROR(err);
+    pooling_kernel2 = clCreateKernel(pooling_program, "pooling", &err);    CHECK_ERROR(err);
 
-    fc_kernel = clCreateKernel(fc_program, "fc", &err);
-    CHECK_ERROR(err);
+    fc_kernel = clCreateKernel(fc_program, "fc", &err);    CHECK_ERROR(err);
+    fc_kernel2 = clCreateKernel(fc_program, "fc", &err);    CHECK_ERROR(err);
 
     buf1 = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(cl_float) * (PARALLEL * 65536), NULL, &err);    CHECK_ERROR(err);
     buf1_1 = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(cl_float) * (PARALLEL * 65536), NULL, &err);    CHECK_ERROR(err);
@@ -233,7 +233,41 @@ static void pooling_layer(float* inputs, float* outputs, int d, int n) {
     err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d * n * n), outputs, 0, NULL, NULL);
     CHECK_ERROR(err);
 
-    clFinish(queue);
+
+    /////////////더블 버퍼링 버전/////////////
+    //size_t global_size[] = { batch_num, d * n * n };
+
+    //err = clSetKernelArg(pooling_kernel, 1, sizeof(cl_mem), &buf2);    CHECK_ERROR(err);
+    //err = clSetKernelArg(pooling_kernel, 2, sizeof(cl_int), &n);
+
+    //err = clSetKernelArg(pooling_kernel2, 1, sizeof(cl_mem), &buf2_1);    CHECK_ERROR(err);
+    //err = clSetKernelArg(pooling_kernel2, 2, sizeof(cl_int), &n); CHECK_ERROR(err);
+
+    //cl_event kernel_event[4] = { NULL, NULL, NULL, NULL };
+    //for (int i = 0; i < num_buffering; i += 2) {
+    //    int k = i + 1;
+
+    //    float* input1 = inputs + i * batch_num * d * n * n * 4;
+    //    float* output1 = outputs + i * batch_num * d * n * n;
+    //    err = clEnqueueWriteBuffer(kernel_queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d * n * n * 4), input1, 0, NULL, NULL);    CHECK_ERROR(err);
+    //    err = clSetKernelArg(pooling_kernel, 0, sizeof(cl_mem), &buf1);    CHECK_ERROR(err);
+    //    if (kernel_event[2] != NULL)
+    //        err = clEnqueueNDRangeKernel(kernel_queue, pooling_kernel, 2, NULL, global_size, NULL, 1, &kernel_event[2], &kernel_event[0]);
+    //    else
+    //        err = clEnqueueNDRangeKernel(kernel_queue, pooling_kernel, 2, NULL, global_size, NULL, 0, NULL, &kernel_event[0]);        CHECK_ERROR(err);
+    //    err = clEnqueueReadBuffer(write_queue, buf2, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d * n * n), output1, 1, &kernel_event[0], &kernel_event[1]);	CHECK_ERROR(err);
+
+    //    ////////kernel2///////
+    //    float* input2 = inputs + k * batch_num * d * n * n * 4;
+    //    float* output2 = outputs + k * batch_num * d * n * n;
+    //    err = clEnqueueWriteBuffer(queue, buf1_1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d * n * n * 4), input2, 0, NULL, NULL);    CHECK_ERROR(err);
+    //    err = clSetKernelArg(pooling_kernel2, 0, sizeof(cl_mem), &buf1_1);    CHECK_ERROR(err);
+    //    err = clEnqueueNDRangeKernel(kernel_queue, pooling_kernel2, 2, NULL, global_size, NULL, 1, &kernel_event[0], &kernel_event[2]);	CHECK_ERROR(err);
+    //    err = clEnqueueReadBuffer(write_queue, buf2_1, CL_FALSE, 0,
+    //        sizeof(cl_float) * (batch_num * d * n * n), output2, 1, &kernel_event[2], &kernel_event[3]);	CHECK_ERROR(err);
+    //}
+
+    //clFinish(queue);
 }
 
 // input is (P, N) and output is (P, M)
