@@ -11,11 +11,13 @@ __kernel void pooling(__global float *inputs, __global float *outputs, __private
 	float *output = outputs + (g_i * d * n * n) + (g_j * n * n);
 
 	float max = 0, pixel;
+	int i_idx = ((g_k * 2) * (2 * n)) + (g_l * 2);
 	for (int i = 0; i < 2; ++i) {
 		for (int j = 0; j < 2; ++j) {
 			pixel = input[((g_k * 2 + i) * (2 * n)) + (g_l * 2 + j)];
 			max = (max > pixel) ? max : pixel;
 		}
 	}
+
 	output[g_k * n + g_l] = max;
 }

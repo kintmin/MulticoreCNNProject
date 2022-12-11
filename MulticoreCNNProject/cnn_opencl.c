@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include "cnn.h"
 
-const int PARALLEL = 30;
+const int PARALLEL = 60;
 
 #define CHECK_ERROR(err) \
     if(err != CL_SUCCESS) { \
@@ -100,6 +100,7 @@ cl_program fc_program;
 cl_kernel convolution_kernel;
 cl_kernel pooling_kernel;
 cl_kernel fc_kernel;
+cl_mem buf1, buf2, buf3, buf4, buf_n;
 
 void cnn_init() {
 	err = clGetPlatformIDs(1, &platform, NULL);
@@ -148,6 +149,12 @@ void cnn_init() {
 
 	fc_kernel = clCreateKernel(fc_program, "fc", &err);
 	CHECK_ERROR(err);
+
+	buf1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * (PARALLEL * 65536), NULL, &err);    CHECK_ERROR(err);
+	buf2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_float) * (PARALLEL * 65536), NULL, &err);    CHECK_ERROR(err);
+	buf3 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * (2359296), NULL, &err);    CHECK_ERROR(err);
+	buf4 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * (512), NULL, &err);    CHECK_ERROR(err);
+	buf_n = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_int), NULL, &err);    CHECK_ERROR(err);
 }
 
 // input is (P, D1, N, N) and output is (P, D2, N, N)
@@ -155,79 +162,60 @@ static void convolution_layer(float *inputs, float *outputs, float *filters, flo
 	size_t global_size[] = { PARALLEL * d1, d2 * n * n };
 	size_t local_size[] = { d1, 1 };
 
-	cl_mem buf_input = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * (PARALLEL * d1 * n * n), inputs, &err);
+	err = clEnqueueWriteBuffer(queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d1 * n * n), inputs, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf_n, CL_TRUE, 0, sizeof(cl_int), &n, 0, NULL, NULL);    CHECK_ERROR(err);
+
+	err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), &buf1);
 	CHECK_ERROR(err);
 
-	cl_mem buf_output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_float) * (PARALLEL * d2 * n * n), NULL, &err);
-	CHECK_ERROR(err);
-
-	cl_mem buf_filter = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, &err);
-	CHECK_ERROR(err);
-
-	cl_mem buf_bias = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * d2, biases, &err);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), &buf_input);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_mem), &buf_filter);
+	err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_mem), &buf3);
 	CHECK_ERROR(err);
 
 	err = clSetKernelArg(convolution_kernel, 2, sizeof(cl_float) * d1, NULL);
 	CHECK_ERROR(err);
 
-	err = clSetKernelArg(convolution_kernel, 3, sizeof(cl_mem), &buf_output);
+	err = clSetKernelArg(convolution_kernel, 3, sizeof(cl_mem), &buf2);
 	CHECK_ERROR(err);
 
-	err = clSetKernelArg(convolution_kernel, 4, sizeof(cl_mem), &buf_bias);
+	err = clSetKernelArg(convolution_kernel, 4, sizeof(cl_mem), &buf4);
 	CHECK_ERROR(err);
 
-	err = clSetKernelArg(convolution_kernel, 5, sizeof(cl_int), &n);
+	err = clSetKernelArg(convolution_kernel, 5, sizeof(cl_mem), &buf_n);
 	CHECK_ERROR(err);
 
 	err = clEnqueueNDRangeKernel(queue, convolution_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
 	CHECK_ERROR(err);
 
-	err = clEnqueueReadBuffer(queue, buf_output, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d2 * n * n), outputs, 0, NULL, NULL);
+	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d2 * n * n), outputs, 0, NULL, NULL);
 	CHECK_ERROR(err);
 
 	clFinish(queue);
-
-	clReleaseMemObject(buf_input);
-	clReleaseMemObject(buf_output);
-	clReleaseMemObject(buf_filter);
-	clReleaseMemObject(buf_bias);
 }
 
 // input is (P, D, N*2, N*2) and output is (P, D, N, N)
 static void pooling_layer(float *inputs, float *outputs, int d, int n) {
 	size_t global_size[] = { PARALLEL, d * n * n };
+	err = clEnqueueWriteBuffer(queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d * n * n * 4), inputs, 0, NULL, NULL);    CHECK_ERROR(err);
+	//err = clEnqueueWriteBuffer(queue, buf_n, CL_TRUE, 0, sizeof(cl_int), &n, 0, NULL, NULL);    CHECK_ERROR(err);
 
-	cl_mem buf_input = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * (PARALLEL * d * n * n * 4), inputs, &err);
+	err = clSetKernelArg(pooling_kernel, 0, sizeof(cl_mem), &buf1);
 	CHECK_ERROR(err);
 
-	cl_mem buf_output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_float) * (PARALLEL * d * n * n), NULL, &err);
+	err = clSetKernelArg(pooling_kernel, 1, sizeof(cl_mem), &buf2);
 	CHECK_ERROR(err);
 
-	err = clSetKernelArg(pooling_kernel, 0, sizeof(cl_mem), &buf_input);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(pooling_kernel, 1, sizeof(cl_mem), &buf_output);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(pooling_kernel, 2, sizeof(cl_int), &n);
+	err = clSetKernelArg(pooling_kernel, 2, sizeof(cl_mem), &n);
 	CHECK_ERROR(err);
 
 	err = clEnqueueNDRangeKernel(queue, pooling_kernel, 2, NULL, global_size, NULL, 0, NULL, NULL);
 	CHECK_ERROR(err);
 
-	err = clEnqueueReadBuffer(queue, buf_output, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d * n * n), outputs, 0, NULL, NULL);
+	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d * n * n), outputs, 0, NULL, NULL);
 	CHECK_ERROR(err);
 
 	clFinish(queue);
-
-	clReleaseMemObject(buf_input);
-	clReleaseMemObject(buf_output);
 }
 
 // input is (P, N) and output is (P, M)
@@ -235,48 +223,36 @@ static void fc_layer(float *input_neuron, float *output_neuron, float *weights, 
 	size_t global_size[] = { PARALLEL * M, N };
 	size_t local_size[] = { 1, N };
 
-	cl_mem buf_output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_float) * (PARALLEL * M), NULL, &err);
+	err = clEnqueueWriteBuffer(queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * N), input_neuron, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf3, CL_TRUE, 0, sizeof(cl_float) * M * N, weights, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * M, biases, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf_n, CL_TRUE, 0, sizeof(cl_int), &PARALLEL, 0, NULL, NULL);    CHECK_ERROR(err);
+
+	err = clSetKernelArg(fc_kernel, 0, sizeof(cl_mem), &buf2);
 	CHECK_ERROR(err);
 
-	cl_mem buf_input = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * (PARALLEL * N), input_neuron, &err);
+	err = clSetKernelArg(fc_kernel, 1, sizeof(cl_mem), &buf1);
 	CHECK_ERROR(err);
 
-	cl_mem buf_weight = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * M * N, weights, &err);
+	err = clSetKernelArg(fc_kernel, 2, sizeof(cl_mem), &buf3);
 	CHECK_ERROR(err);
 
-	cl_mem buf_bias = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * M, biases, &err);
-	CHECK_ERROR(err);
-	
-	err = clSetKernelArg(fc_kernel, 0, sizeof(cl_mem), &buf_output);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(fc_kernel, 1, sizeof(cl_mem), &buf_input);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(fc_kernel, 2, sizeof(cl_mem), &buf_weight);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(fc_kernel, 3, sizeof(cl_mem), &buf_bias);
+	err = clSetKernelArg(fc_kernel, 3, sizeof(cl_mem), &buf4);
 	CHECK_ERROR(err);
 	
 	err = clSetKernelArg(fc_kernel, 4, sizeof(cl_float) * N, NULL);
 	CHECK_ERROR(err);
 
-	err = clSetKernelArg(fc_kernel, 5, sizeof(cl_int), &PARALLEL);
+	err = clSetKernelArg(fc_kernel, 5, sizeof(cl_mem), &buf_n);
 	CHECK_ERROR(err);
 
 	err = clEnqueueNDRangeKernel(queue, fc_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
 	CHECK_ERROR(err);
 
-	err = clEnqueueReadBuffer(queue, buf_output, CL_TRUE, 0, sizeof(cl_float) * M * PARALLEL, output_neuron, 0, NULL, NULL);
+	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * M * PARALLEL, output_neuron, 0, NULL, NULL);
 	CHECK_ERROR(err);
 
 	clFinish(queue);
-
-	clReleaseMemObject(buf_input);
-	clReleaseMemObject(buf_output);
-	clReleaseMemObject(buf_weight);
-	clReleaseMemObject(buf_bias);
 }
 
 void cnn(float *images, float **network, int *labels, float *confidences, int num_images) {
