@@ -64,5 +64,8 @@
     <None Include="result_kernel.cl">
       <Filter>소스 파일</Filter>
     </None>
+    <None Include="convolution_tiled_kernel.cl">
+      <Filter>소스 파일</Filter>
+    </None>
   </ItemGroup>
 </Project>

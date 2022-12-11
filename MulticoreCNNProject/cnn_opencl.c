@@ -6,9 +6,10 @@
 #include <string.h>
 #include <io.h>
 #include <fcntl.h>
+#include <process.h>
 #include "cnn.h"
 
-const int PARALLEL = 60;
+const int PARALLEL = 40;
 
 #define CHECK_ERROR(err) \
     if(err != CL_SUCCESS) { \
@@ -167,29 +168,15 @@ static void convolution_layer(float *inputs, float *outputs, float *filters, flo
 	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
 	err = clEnqueueWriteBuffer(queue, buf_n, CL_TRUE, 0, sizeof(cl_int), &n, 0, NULL, NULL);    CHECK_ERROR(err);
 
-	err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), &buf1);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_mem), &buf3);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(convolution_kernel, 2, sizeof(cl_float) * d1, NULL);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(convolution_kernel, 3, sizeof(cl_mem), &buf2);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(convolution_kernel, 4, sizeof(cl_mem), &buf4);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(convolution_kernel, 5, sizeof(cl_mem), &buf_n);
-	CHECK_ERROR(err);
-
-	err = clEnqueueNDRangeKernel(queue, convolution_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
-	CHECK_ERROR(err);
-
-	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d2 * n * n), outputs, 0, NULL, NULL);
-	CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), &buf1); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_mem), &buf3); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 2, sizeof(cl_float) * d1, NULL); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 3, sizeof(cl_mem), &buf2); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 4, sizeof(cl_mem), &buf4); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 5, sizeof(cl_mem), &buf_n); CHECK_ERROR(err);
+	
+	err = clEnqueueNDRangeKernel(queue, convolution_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL); CHECK_ERROR(err);
+	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d2 * n * n), outputs, 0, NULL, NULL); CHECK_ERROR(err);
 
 	clFinish(queue);
 }
@@ -198,22 +185,12 @@ static void convolution_layer(float *inputs, float *outputs, float *filters, flo
 static void pooling_layer(float *inputs, float *outputs, int d, int n) {
 	size_t global_size[] = { PARALLEL, d * n * n };
 	err = clEnqueueWriteBuffer(queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d * n * n * 4), inputs, 0, NULL, NULL);    CHECK_ERROR(err);
-	//err = clEnqueueWriteBuffer(queue, buf_n, CL_TRUE, 0, sizeof(cl_int), &n, 0, NULL, NULL);    CHECK_ERROR(err);
-
-	err = clSetKernelArg(pooling_kernel, 0, sizeof(cl_mem), &buf1);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(pooling_kernel, 1, sizeof(cl_mem), &buf2);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(pooling_kernel, 2, sizeof(cl_mem), &n);
-	CHECK_ERROR(err);
-
-	err = clEnqueueNDRangeKernel(queue, pooling_kernel, 2, NULL, global_size, NULL, 0, NULL, NULL);
-	CHECK_ERROR(err);
-
-	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d * n * n), outputs, 0, NULL, NULL);
-	CHECK_ERROR(err);
+	err = clSetKernelArg(pooling_kernel, 0, sizeof(cl_mem), &buf1); CHECK_ERROR(err);
+	err = clSetKernelArg(pooling_kernel, 1, sizeof(cl_mem), &buf2); CHECK_ERROR(err);
+	err = clSetKernelArg(pooling_kernel, 2, sizeof(cl_mem), &n); CHECK_ERROR(err);
+	
+	err = clEnqueueNDRangeKernel(queue, pooling_kernel, 2, NULL, global_size, NULL, 0, NULL, NULL); CHECK_ERROR(err);
+	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d * n * n), outputs, 0, NULL, NULL); CHECK_ERROR(err);
 
 	clFinish(queue);
 }
@@ -228,31 +205,39 @@ static void fc_layer(float *input_neuron, float *output_neuron, float *weights, 
 	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * M, biases, 0, NULL, NULL);    CHECK_ERROR(err);
 	err = clEnqueueWriteBuffer(queue, buf_n, CL_TRUE, 0, sizeof(cl_int), &PARALLEL, 0, NULL, NULL);    CHECK_ERROR(err);
 
-	err = clSetKernelArg(fc_kernel, 0, sizeof(cl_mem), &buf2);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(fc_kernel, 1, sizeof(cl_mem), &buf1);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(fc_kernel, 2, sizeof(cl_mem), &buf3);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(fc_kernel, 3, sizeof(cl_mem), &buf4);
-	CHECK_ERROR(err);
+	err = clSetKernelArg(fc_kernel, 0, sizeof(cl_mem), &buf2); CHECK_ERROR(err);
+	err = clSetKernelArg(fc_kernel, 1, sizeof(cl_mem), &buf1); CHECK_ERROR(err);
+	err = clSetKernelArg(fc_kernel, 2, sizeof(cl_mem), &buf3); CHECK_ERROR(err);
+	err = clSetKernelArg(fc_kernel, 3, sizeof(cl_mem), &buf4); CHECK_ERROR(err);
+	err = clSetKernelArg(fc_kernel, 4, sizeof(cl_float) * N, NULL); CHECK_ERROR(err);
+	err = clSetKernelArg(fc_kernel, 5, sizeof(cl_mem), &buf_n); CHECK_ERROR(err);
 	
-	err = clSetKernelArg(fc_kernel, 4, sizeof(cl_float) * N, NULL);
-	CHECK_ERROR(err);
-
-	err = clSetKernelArg(fc_kernel, 5, sizeof(cl_mem), &buf_n);
-	CHECK_ERROR(err);
-
-	err = clEnqueueNDRangeKernel(queue, fc_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
-	CHECK_ERROR(err);
-
-	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * M * PARALLEL, output_neuron, 0, NULL, NULL);
-	CHECK_ERROR(err);
+	err = clEnqueueNDRangeKernel(queue, fc_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL); CHECK_ERROR(err);
+	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * M * PARALLEL, output_neuron, 0, NULL, NULL); CHECK_ERROR(err);
 
 	clFinish(queue);
+}
+
+struct Result {
+	int i;
+	float *fc3;
+	int *labels;
+	float *confidences;
+};
+
+unsigned _stdcall Thread_A(void *argv)
+{
+	struct Result *r = (struct Result *)argv;
+	for (int j = 0; j < PARALLEL; ++j) {
+		float *result = r->fc3 + 10 * j;
+		softmax(result, 10);
+		r->labels[r->i + j] = find_max(result, 10);
+		r->confidences[r->i + j] = result[r->labels[r->i + j]];
+	}
+}
+
+static void get_result(struct Result *r) {
+	uintptr_t handle = _beginthreadex(NULL, 0, Thread_A, (void*)r, 0, NULL);
 }
 
 void cnn(float *images, float **network, int *labels, float *confidences, int num_images) {
@@ -310,6 +295,9 @@ void cnn(float *images, float **network, int *labels, float *confidences, int nu
 	fc3 = alloc_layer(10 * PARALLEL);
 
 	// run network
+	struct Result r;
+	r.labels = labels;
+	r.confidences = confidences;
 	for (int i = 0; i < num_images; i += PARALLEL)
 	{
 		float *image = images + i * 3 * 32 * 32;
@@ -341,13 +329,16 @@ void cnn(float *images, float **network, int *labels, float *confidences, int nu
 		fc_layer(fc1, fc2, w2, b2, 512, 512);
 		fc_layer(fc2, fc3, w3, b3, 10, 512);
 
-		float *result;
-		for (int j = 0; j < PARALLEL; ++j) {
-			result = fc3 + 10 * j;
-			softmax(result, 10);
-			labels[i + j] = find_max(result, 10);
-			confidences[i + j] = result[labels[i + j]];
-		}
+		r.i = i;
+		r.fc3 = fc3;
+		get_result(&r);
+
+		//for (int j = 0; j < PARALLEL; ++j) {
+		//	float *result = fc3 + 10 * j;
+		//	softmax(result, 10);
+		//	labels[i + j] = find_max(result, 10);
+		//	confidences[i + j] = result[labels[i + j]];
+		//}
 	}
 
 	free(c1_1); free(c1_2); free(p1);

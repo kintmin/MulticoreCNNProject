@@ -172,6 +172,7 @@
     <None Include="cifar10_image.bin" />
     <None Include="cifar10_label.bin" />
     <None Include="convolution_kernel.cl" />
+    <None Include="convolution_tiled_kernel.cl" />
     <None Include="fc_kernel.cl" />
     <None Include="network.bin" />
     <None Include="pooling_kernel.cl" />
