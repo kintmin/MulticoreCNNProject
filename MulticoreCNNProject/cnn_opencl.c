@@ -98,7 +98,7 @@ cl_command_queue queue;
 cl_program convolution_program;
 cl_program pooling_program;
 cl_program fc_program;
-cl_kernel convolution_kernel;
+cl_kernel convolution_kernel, reduction_kernel;
 cl_kernel pooling_kernel;
 cl_kernel fc_kernel;
 cl_mem buf1, buf2, buf3, buf4, buf_n;
@@ -118,7 +118,7 @@ void cnn_init() {
 	CHECK_ERROR(err);
 
 	size_t source_size;
-	const char *source_code = GetSourceCode("convolution_kernel.cl", &source_size);
+	const char *source_code = GetSourceCode("convolution_kernel2.cl", &source_size);
 	convolution_program = clCreateProgramWithSource(context, 1, (const char **)&source_code, &source_size, &err);
 	CHECK_ERROR(err);
 
@@ -145,6 +145,9 @@ void cnn_init() {
 	convolution_kernel = clCreateKernel(convolution_program, "convolution", &err);
 	CHECK_ERROR(err);
 
+	reduction_kernel = clCreateKernel(convolution_program, "reduction", &err);
+	CHECK_ERROR(err);
+
 	pooling_kernel = clCreateKernel(pooling_program, "pooling", &err);
 	CHECK_ERROR(err);
 
@@ -152,7 +155,7 @@ void cnn_init() {
 	CHECK_ERROR(err);
 
 	buf1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * (PARALLEL * 65536), NULL, &err);    CHECK_ERROR(err);
-	buf2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_float) * (PARALLEL * 65536), NULL, &err);    CHECK_ERROR(err);
+	buf2 = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(cl_float) * 4194304, NULL, &err);    CHECK_ERROR(err);
 	buf3 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * (2359296), NULL, &err);    CHECK_ERROR(err);
 	buf4 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * (512), NULL, &err);    CHECK_ERROR(err);
 	buf_n = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_int), NULL, &err);    CHECK_ERROR(err);
@@ -176,6 +179,36 @@ static void convolution_layer(float *inputs, float *outputs, float *filters, flo
 	err = clSetKernelArg(convolution_kernel, 5, sizeof(cl_mem), &buf_n); CHECK_ERROR(err);
 	
 	err = clEnqueueNDRangeKernel(queue, convolution_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL); CHECK_ERROR(err);
+	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d2 * n * n), outputs, 0, NULL, NULL); CHECK_ERROR(err);
+
+	clFinish(queue);
+}
+
+static void convolution_layer2(float *inputs, float *outputs, float *filters, float *biases, int d2, int d1, int n) {
+	size_t global_size[] = { PARALLEL * d2, d1 * n * n };
+	size_t local_size[] = { 1, n * n };
+
+	err = clEnqueueWriteBuffer(queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d1 * n * n), inputs, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
+
+	err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), &buf1); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_mem), &buf2); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 2, sizeof(cl_mem), &buf3); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 3, sizeof(cl_int), &n); CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel, 4, sizeof(cl_int), &d2); CHECK_ERROR(err);
+
+	err = clEnqueueNDRangeKernel(queue, convolution_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL); CHECK_ERROR(err);
+	clFinish(queue);
+
+	local_size[1] = d1;
+	err = clSetKernelArg(reduction_kernel, 0, sizeof(cl_mem), &buf2); CHECK_ERROR(err);
+	err = clSetKernelArg(reduction_kernel, 1, sizeof(cl_mem), &buf4); CHECK_ERROR(err);
+	err = clSetKernelArg(reduction_kernel, 2, sizeof(cl_float) * d1, NULL); CHECK_ERROR(err);
+	err = clSetKernelArg(reduction_kernel, 3, sizeof(cl_int), &n); CHECK_ERROR(err);
+	err = clSetKernelArg(reduction_kernel, 4, sizeof(cl_int), &d2); CHECK_ERROR(err);
+
+	err = clEnqueueNDRangeKernel(queue, reduction_kernel, 2, NULL, global_size, local_size, 0, NULL, NULL); CHECK_ERROR(err);
 	err = clEnqueueReadBuffer(queue, buf2, CL_TRUE, 0, sizeof(cl_float) * (PARALLEL * d2 * n * n), outputs, 0, NULL, NULL); CHECK_ERROR(err);
 
 	clFinish(queue);
@@ -302,27 +335,27 @@ void cnn(float *images, float **network, int *labels, float *confidences, int nu
 	{
 		float *image = images + i * 3 * 32 * 32;
 
-		convolution_layer(image, c1_1, w1_1, b1_1, 64, 3, 32);
-		convolution_layer(c1_1, c1_2, w1_2, b1_2, 64, 64, 32);
+		convolution_layer2(image, c1_1, w1_1, b1_1, 64, 3, 32);
+		convolution_layer2(c1_1, c1_2, w1_2, b1_2, 64, 64, 32);
 		pooling_layer(c1_2, p1, 64, 16);
 
-		convolution_layer(p1, c2_1, w2_1, b2_1, 128, 64, 16);
-		convolution_layer(c2_1, c2_2, w2_2, b2_2, 128, 128, 16);
+		convolution_layer2(p1, c2_1, w2_1, b2_1, 128, 64, 16);
+		convolution_layer2(c2_1, c2_2, w2_2, b2_2, 128, 128, 16);
 		pooling_layer(c2_2, p2, 128, 8);
 
-		convolution_layer(p2, c3_1, w3_1, b3_1, 256, 128, 8);
-		convolution_layer(c3_1, c3_2, w3_2, b3_2, 256, 256, 8);
-		convolution_layer(c3_2, c3_3, w3_3, b3_3, 256, 256, 8);
+		convolution_layer2(p2, c3_1, w3_1, b3_1, 256, 128, 8);
+		convolution_layer2(c3_1, c3_2, w3_2, b3_2, 256, 256, 8);
+		convolution_layer2(c3_2, c3_3, w3_3, b3_3, 256, 256, 8);
 		pooling_layer(c3_3, p3, 256, 4);
 
-		convolution_layer(p3, c4_1, w4_1, b4_1, 512, 256, 4);
-		convolution_layer(c4_1, c4_2, w4_2, b4_2, 512, 512, 4);
-		convolution_layer(c4_2, c4_3, w4_3, b4_3, 512, 512, 4);
+		convolution_layer2(p3, c4_1, w4_1, b4_1, 512, 256, 4);
+		convolution_layer2(c4_1, c4_2, w4_2, b4_2, 512, 512, 4);
+		convolution_layer2(c4_2, c4_3, w4_3, b4_3, 512, 512, 4);
 		pooling_layer(c4_3, p4, 512, 2);
 
-		convolution_layer(p4, c5_1, w5_1, b5_1, 512, 512, 2);
-		convolution_layer(c5_1, c5_2, w5_2, b5_2, 512, 512, 2);
-		convolution_layer(c5_2, c5_3, w5_3, b5_3, 512, 512, 2);
+		convolution_layer2(p4, c5_1, w5_1, b5_1, 512, 512, 2);
+		convolution_layer2(c5_1, c5_2, w5_2, b5_2, 512, 512, 2);
+		convolution_layer2(c5_2, c5_3, w5_3, b5_3, 512, 512, 2);
 		pooling_layer(c5_3, p5, 512, 1);
 
 		fc_layer(p5, fc1, w1, b1, 512, 512);
