@@ -32,7 +32,7 @@ __kernel void convolution(__global float *inputs, __global float *outputs, __glo
 
 // globalsize: { P * D2, D1 * N * N }
 // localsize: { 1, D1 }
-__kernel void reduction(__global float *outputs, __constant float *biases, __local float *filterout, const int n, const int d2) {
+__kernel void reduction(__global float *inputs, __global float *outputs, __constant float *biases, __local float *filterout, const int n, const int d2) {
 	const int d1 = get_global_size(1) / (n * n);
 
 	const int g_i = get_global_id(0);
@@ -45,7 +45,7 @@ __kernel void reduction(__global float *outputs, __constant float *biases, __loc
 
 	int l_j = get_local_id(1);
 	int o_idx = (d2 * n * n * d1 * page) + (n * n * d1 * oc) + n * d1 * img_i + d1 * img_j + l_j;
-	filterout[l_j] = outputs[o_idx];
+	filterout[l_j] = inputs[o_idx];
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	o_idx /= d1;

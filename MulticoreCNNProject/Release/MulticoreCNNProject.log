@@ -1,10 +1,20 @@
-﻿  cnn_opencl.c
-C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.c(69,30): warning C4244: '+=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.c(72,41): warning C4244: '=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+﻿  cnn_opencl.cpp
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(75,30): warning C4244: '+=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(78,36): warning C4244: '=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(185,36): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(185,49): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(186,26): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(205,36): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(205,49): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(206,31): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(236,43): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(248,36): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(248,41): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\user\source\repos\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.cpp(249,29): warning C4838: 'int'에서 'size_t'(으)로의 변환에는 축소 변환이 필요합니다.
 LINK : warning LNK4075: '/INCREMENTAL'이(가) '/LTCG' 사양으로 인해 무시됩니다.
   코드를 생성하고 있습니다.
-  1 of 26 functions ( 3.8%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
+  2 of 146 functions ( 1.4%) were compiled, the rest were copied from previous compilation.
+    1 functions were new in current compilation
     1 functions had inline decision re-evaluated but remain unchanged
   코드를 생성했습니다.
   MulticoreCNNProject.vcxproj -> C:\Users\user\source\repos\MulticoreCNNProject\Release\MulticoreCNNProject.exe

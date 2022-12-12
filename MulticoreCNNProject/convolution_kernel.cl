@@ -27,27 +27,18 @@ __kernel void convolution(__constant float *inputs, __constant float *filters, _
 				sum += inputs[cur_i_idx] * filters[cur_f_idx];	// filter 계산한 후 local memory에 저장	
 		}
 	}
-
 	filterout[l_id] = sum;
+
+	int i = d1, next = d1 >> 2;
+	while (next > 1) {
+		if (l_id >= next) return;
+		barrier(CLK_LOCAL_MEM_FENCE);
+		for (int j = next; j < i; j += next) filterout[l_id] += filterout[l_id + j];
+		i = next;
+		next >>= 2;
+	}
 	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if (d1 == 3) {
-		if (l_id == 0) {
-			filterout[0] += filterout[1];
-			filterout[0] += filterout[2];
-			filterout[0] += biases[g_j];
-			outputs[o_idx + g_k * n + g_l] = (filterout[0] > 0) ? filterout[0] : 0;
-		}
-	}
-	else {
-		for (int p = d1 >> 1; p >= 1; p = p >> 1) {
-			if (l_id >= p) return;
-			filterout[l_id] += filterout[l_id + p];
-			barrier(CLK_LOCAL_MEM_FENCE);
-		}
-
-		filterout[0] += biases[g_j];
-		outputs[o_idx + g_k * n + g_l] = (filterout[0] > 0) ? filterout[0] : 0;
-	}
+	for (int j = 1; j < i; ++j) filterout[0] += filterout[j];
+	filterout[0] += biases[g_j];
+	outputs[o_idx + g_k * n + g_l] = (filterout[0] > 0) ? filterout[0] : 0;
 }
-

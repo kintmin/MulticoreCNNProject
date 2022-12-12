@@ -18,16 +18,16 @@
     <ClCompile Include="sample.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="cnn_seq.c">
+    <ClCompile Include="cnn_seq.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="compare.c">
+    <ClCompile Include="compare.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="main.c">
+    <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="cnn_opencl.c">
+    <ClCompile Include="cnn_opencl.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
