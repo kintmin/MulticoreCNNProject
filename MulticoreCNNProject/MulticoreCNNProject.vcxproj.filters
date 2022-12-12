@@ -64,10 +64,10 @@
     <None Include="result_kernel.cl">
       <Filter>소스 파일</Filter>
     </None>
-    <None Include="convolution_tiled_kernel.cl">
+    <None Include="tiled_convolution_kernel2.cl">
       <Filter>소스 파일</Filter>
     </None>
-    <None Include="convolution_kernel2.cl">
+    <None Include="tiled_convolution_kernel.cl">
       <Filter>소스 파일</Filter>
     </None>
   </ItemGroup>
