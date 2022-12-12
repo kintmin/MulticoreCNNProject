@@ -1,12 +1,10 @@
-﻿  cnn_opencl.c
-  cl_version.h: CL_TARGET_OPENCL_VERSION is not defined. Defaulting to 220 (OpenCL 2.2)
-C:\Github\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.c(75,36): warning C4244: '+=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-C:\Github\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.c(78,47): warning C4244: '=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-C:\Github\MulticoreCNNProject\MulticoreCNNProject\cnn_opencl.c(439,17): warning C4013: 'clock'이(가) 정의되지 않았습니다. extern은 int형을 반환하는 것으로 간주합니다.
+﻿  main.c
+D:\unity\MulticoreCNNProject\MulticoreCNNProject\main.c(68,21): warning C4047: '함수': 'float **'의 간접 참조 수준이 'float *'과(와) 다릅니다.
+D:\unity\MulticoreCNNProject\MulticoreCNNProject\main.c(68,14): warning C4024: 'cnn': 형식 및 실제 매개 변수 2의 형식이 서로 다릅니다.
+D:\unity\MulticoreCNNProject\MulticoreCNNProject\main.c(83,9): warning C4013: 'compare'이(가) 정의되지 않았습니다. extern은 int형을 반환하는 것으로 간주합니다.
 LINK : warning LNK4075: '/INCREMENTAL'이(가) '/LTCG' 사양으로 인해 무시됩니다.
   코드를 생성하고 있습니다.
-  6 of 24 functions (25.0%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+  All 19 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   코드를 생성했습니다.
-  MulticoreCNNProject.vcxproj -> C:\Github\MulticoreCNNProject\Release\MulticoreCNNProject.exe
+  MulticoreCNNProject.vcxproj -> D:\unity\MulticoreCNNProject\Release\MulticoreCNNProject.exe
