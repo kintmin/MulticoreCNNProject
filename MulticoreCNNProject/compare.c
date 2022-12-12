@@ -1,46 +1,54 @@
-#define _CRT_SECURE_NO_WARNINGS
-#include "compare.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#pragma warning(disable:4996)
+#include<stdio.h>
+#include<stdlib.h>
+#include<math.h>
 
-int compare(char* argv) {
+extern const char* CLASS_NAME[];
 
-	FILE* f0 = fopen("answer.txt", "r");
-	if (!f0) {
-		fprintf(stderr, "%s doesn't exist.\n", "answer.txt");
-		exit(EXIT_FAILURE);
+void compare(const char* filename, int num_of_image) {
+	FILE* fp1, *fp2;
+	int retv;
+	int* correctClass, *yourClass;
+	float* correctConf, *yourConf;
+
+	correctClass = (int*)malloc(sizeof(int) * num_of_image);
+	yourClass = (int*)malloc(sizeof(int) * num_of_image);
+	correctConf = (float*)malloc(sizeof(float) * num_of_image);
+	yourConf = (float*)malloc(sizeof(float) * num_of_image);
+
+	fp1 = fopen("answer.txt", "r");
+	if (fp1 == NULL) {
+		perror("answer.txt");
+		exit(1);
 	}
-	FILE* f1 = fopen(argv, "r");
-	if (!f1) {
-		fprintf(stderr, "%s doesn't exist.\n", argv);
-		exit(EXIT_FAILURE);
+	fp2 = fopen(filename, "r");
+	if (fp2 == NULL) {
+		perror("error while openeing");
+		exit(1);
 	}
+	for (int i = 0; i < num_of_image; ++i) {
 
-	int same = 1;
-	while (1) {
-		int n;
-		char l0[16], l1[16];
-		float c0, c1;
-		if (fscanf(f0, "Image %04d: %s %f\n", &n, l0, &c0) != 3) break;
-		if (fscanf(f1, "Image %04d: %s %f\n", &n, l1, &c1) != 3) break;
-		if (strcmp(l0, l1) != 0) {
-			printf("\tImage %04d: different class (%s vs %s)\n", n, l0, l1);
-			same = 0;
-			break;
+		retv = fscanf(fp1, "Image %*4d : %d : %*10s\t%f\n", correctClass + i, correctConf + i);
+		if (retv = 0) {
+			perror("error while fscanf");
 		}
-		if (fabs(c0 - c1) > 0.01) {
-			printf("\tImage %04d: different confidence (%f vs %f)\n", n, c0, c1);
-			same = 0;
-			break;
+		retv = fscanf(fp2, "Image %*4d : %d : %*10s\t%f\n", yourClass + i, yourConf + i);
+		if (retv = 0) {
+			perror("error while fscanf");
+		}
+		//printf("%d : %d, %f %f\n", correctClass[i], yourClass[i], correctConf[i], yourConf[i]);
+		if (correctClass[i] != yourClass[i] || fabs(correctConf[i] - yourConf[i]) > 0.01) {
+			printf("Images %04d\n", i);
+			printf("%10s : %f is correct. but your answer is\n", CLASS_NAME[correctClass[i]], correctConf[i]);
+			printf("%10s : %f\n", CLASS_NAME[yourClass[i]], yourConf[i]);
+			exit(1);
 		}
 	}
-	if (same) {
-		printf("\tResults are same.\n");
-	}
+	printf("Good");
 
-	fclose(f0);
-	fclose(f1);
-	return 0;
+	free(correctClass);
+	free(yourClass);
+	free(correctConf);
+	free(yourConf);
+
 }
