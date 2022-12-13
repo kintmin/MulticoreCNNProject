@@ -186,11 +186,11 @@ void cnn_init() {
 	kernel_queue = clCreateCommandQueueWithProperties(context, device, 0, &err);    CHECK_ERROR(err);
 
 	size_t source_size;
-	const char* source_code = GetSourceCode("convolution_kernel.cl", &source_size);
-	convolution_program = clCreateProgramWithSource(context, 1, (const char**)&source_code, &source_size, &err);
-	CHECK_ERROR(err);
+	//const char* source_code = GetSourceCode("convolution_kernel.cl", &source_size);
+	//convolution_program = clCreateProgramWithSource(context, 1, (const char**)&source_code, &source_size, &err);
+	//CHECK_ERROR(err);
 
-	source_code = GetSourceCode("convolution_kernel_odd.cl", &source_size);
+	const char* source_code = GetSourceCode("convolution_kernel_odd.cl", &source_size);
 	convolution_program_2 = clCreateProgramWithSource(context, 1, (const char**)&source_code, &source_size, &err);
 	CHECK_ERROR(err);
 
@@ -202,9 +202,9 @@ void cnn_init() {
 	fc_program = clCreateProgramWithSource(context, 1, (const char**)&source_code, &source_size, &err);
 	CHECK_ERROR(err);
 
-	err = clBuildProgram(convolution_program, 1, &device, "-cl-fast-relaxed-math", NULL, NULL);
-	CHECK_BUILD_ERROR(convolution_program);
-	CHECK_ERROR(err);
+	//err = clBuildProgram(convolution_program, 1, &device, "-cl-fast-relaxed-math", NULL, NULL);
+	//CHECK_BUILD_ERROR(convolution_program);
+	//CHECK_ERROR(err);
 
 	err = clBuildProgram(convolution_program_2, 1, &device, "-cl-fast-relaxed-math", NULL, NULL);
 	CHECK_BUILD_ERROR(convolution_program_2);
@@ -218,8 +218,8 @@ void cnn_init() {
 	CHECK_BUILD_ERROR(fc_program);
 	CHECK_ERROR(err);
 
-	convolution_kernel = clCreateKernel(convolution_program, "convolution", &err);    CHECK_ERROR(err);
-	convolution_kernel2 = clCreateKernel(convolution_program, "convolution", &err);    CHECK_ERROR(err);
+	//convolution_kernel = clCreateKernel(convolution_program, "convolution", &err);    CHECK_ERROR(err);
+	//convolution_kernel2 = clCreateKernel(convolution_program, "convolution", &err);    CHECK_ERROR(err);
 
 	convolution_kernel_2 = clCreateKernel(convolution_program_2, "convolution", &err);    CHECK_ERROR(err);
 	convolution_kernel_22 = clCreateKernel(convolution_program_2, "convolution", &err);    CHECK_ERROR(err);
@@ -243,96 +243,89 @@ void cnn_init() {
 
 // input is (P, D1, N, N) and output is (P, D2, N, N)
 static void convolution_layer(float* inputs, float* outputs, float* filters, float* biases, int d1, int d2, int n) {
-	if (d1 < 0) {
-		err = clEnqueueWriteBuffer(kernel_queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
-		err = clEnqueueWriteBuffer(kernel_queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
+	//// 9개 reduction 버전 ////
+	//err = clEnqueueWriteBuffer(kernel_queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
+	//err = clEnqueueWriteBuffer(kernel_queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
 
-		err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_float) * d1 * 9, NULL);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel, 2, sizeof(cl_mem), &buf2);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel, 3, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel, 4, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel, 6, sizeof(cl_int), &d2);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_float) * d1 * 9, NULL);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel, 2, sizeof(cl_mem), &buf2);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel, 3, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel, 4, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel, 6, sizeof(cl_int), &d2);    CHECK_ERROR(err);
 
-		err = clSetKernelArg(convolution_kernel2, 1, sizeof(cl_float) * d1 * 9, NULL);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel2, 2, sizeof(cl_mem), &buf2_1);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel2, 3, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel2, 4, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel2, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel2, 6, sizeof(cl_int), &d2);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel2, 1, sizeof(cl_float) * d1 * 9, NULL);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel2, 2, sizeof(cl_mem), &buf2_1);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel2, 3, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel2, 4, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel2, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
+	//err = clSetKernelArg(convolution_kernel2, 6, sizeof(cl_int), &d2);    CHECK_ERROR(err);
 
-		size_t global_size[] = { d1 * 9 , d2 * n * n * batch_num };
-		size_t local_size[] = { d1 * 9, 1 };
-		cl_event kernel_event[4] = { NULL };
-		for (int i = 0; i < num_buffering; i += 2) {
-			float* input1 = inputs + i * batch_num * d1 * n * n;
-			float* output1 = outputs + i * batch_num * d2 * n * n;
+	//size_t global_size[] = { d1 * 9 , d2 * n * n * batch_num };
+	//size_t local_size[] = { d1 * 9, 1 };
+	//cl_event kernel_event[4] = { NULL };
+	//for (int i = 0; i < num_buffering; i += 2) {
+	//	float* input1 = inputs + i * batch_num * d1 * n * n;
+	//	float* output1 = outputs + i * batch_num * d2 * n * n;
 
-			err = clEnqueueWriteBuffer(kernel_queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input1, 0, NULL, NULL);    CHECK_ERROR(err);
-			err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), &buf1);    CHECK_ERROR(err);
-			if (kernel_event[2] != NULL)
-				err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel, 2, NULL, global_size, local_size, 1, &kernel_event[2], &kernel_event[0]);
-			else
-				err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel, 2, NULL, global_size, local_size, 0, NULL, &kernel_event[0]);        CHECK_ERROR(err);
-			err = clEnqueueReadBuffer(write_queue, buf2, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d2 * n * n), output1, 1, &kernel_event[0], &kernel_event[1]);	CHECK_ERROR(err);
+	//	err = clEnqueueWriteBuffer(kernel_queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input1, 0, NULL, NULL);    CHECK_ERROR(err);
+	//	err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), &buf1);    CHECK_ERROR(err);
+	//	if (kernel_event[2] != NULL)
+	//		err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel, 2, NULL, global_size, local_size, 1, &kernel_event[2], &kernel_event[0]);
+	//	else
+	//		err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel, 2, NULL, global_size, local_size, 0, NULL, &kernel_event[0]);        CHECK_ERROR(err);
+	//	err = clEnqueueReadBuffer(write_queue, buf2, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d2 * n * n), output1, 1, &kernel_event[0], &kernel_event[1]);	CHECK_ERROR(err);
 
-			////////kernel2///////
-			int k = i + 1;
-			float* input2 = inputs + k * batch_num * d1 * n * n;
-			float* output2 = outputs + k * batch_num * d2 * n * n;
+	//	////////kernel2///////
+	//	int k = i + 1;
+	//	float* input2 = inputs + k * batch_num * d1 * n * n;
+	//	float* output2 = outputs + k * batch_num * d2 * n * n;
 
-			err = clEnqueueWriteBuffer(kernel_queue, buf1_1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input2, 0, NULL, NULL);    CHECK_ERROR(err);
-			err = clSetKernelArg(convolution_kernel2, 0, sizeof(cl_mem), &buf1_1);    CHECK_ERROR(err);
-			err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel2, 2, NULL, global_size, local_size, 1, &kernel_event[0], &kernel_event[2]);	CHECK_ERROR(err);
-			err = clEnqueueReadBuffer(write_queue, buf2_1, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d2 * n * n), output2, 1, &kernel_event[2], &kernel_event[3]);	CHECK_ERROR(err);
-		}
-	}
-	else {
+	//	err = clEnqueueWriteBuffer(kernel_queue, buf1_1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input2, 0, NULL, NULL);    CHECK_ERROR(err);
+	//	err = clSetKernelArg(convolution_kernel2, 0, sizeof(cl_mem), &buf1_1);    CHECK_ERROR(err);
+	//	err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel2, 2, NULL, global_size, local_size, 1, &kernel_event[0], &kernel_event[2]);	CHECK_ERROR(err);
+	//	err = clEnqueueReadBuffer(write_queue, buf2_1, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d2 * n * n), output2, 1, &kernel_event[2], &kernel_event[3]);	CHECK_ERROR(err);
+	//}
 
-		err = clEnqueueWriteBuffer(kernel_queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
-		err = clEnqueueWriteBuffer(kernel_queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(kernel_queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(kernel_queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
 
-		err = clSetKernelArg(convolution_kernel_2, 1, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_2, 2, sizeof(cl_float) * d1, NULL);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_2, 3, sizeof(cl_mem), &buf2);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_2, 4, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_2, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_2, 1, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_2, 2, sizeof(cl_float) * d1, NULL);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_2, 3, sizeof(cl_mem), &buf2);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_2, 4, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_2, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
 
-		err = clSetKernelArg(convolution_kernel_22, 1, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_22, 2, sizeof(cl_float) * d1, NULL);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_22, 3, sizeof(cl_mem), &buf2_1);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_22, 4, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
-		err = clSetKernelArg(convolution_kernel_22, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_22, 1, sizeof(cl_mem), &buf3);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_22, 2, sizeof(cl_float) * d1, NULL);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_22, 3, sizeof(cl_mem), &buf2_1);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_22, 4, sizeof(cl_mem), &buf4);    CHECK_ERROR(err);
+	err = clSetKernelArg(convolution_kernel_22, 5, sizeof(cl_int), &n);    CHECK_ERROR(err);
 
-		size_t global_size[] = { d1 * batch_num, d2 * n * n };
-		size_t local_size[] = { d1, 1 };
-		cl_event kernel_event[4] = { NULL, NULL, NULL, NULL };
-		for (int i = 0; i < num_buffering; i += 2) {
-			int k = i + 1;
+	size_t global_size[] = { d1 * batch_num, d2 * n * n };
+	size_t local_size[] = { d1, 1 };
+	cl_event kernel_event[4] = { NULL, NULL, NULL, NULL };
+	for (int i = 0; i < num_buffering; i += 2) {
+		int k = i + 1;
 
-			float* input1 = inputs + i * batch_num * d1 * n * n;
-			float* output1 = outputs + i * batch_num * d2 * n * n;
-			err = clEnqueueWriteBuffer(kernel_queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input1, 0, NULL, NULL);    CHECK_ERROR(err);
-			err = clSetKernelArg(convolution_kernel_2, 0, sizeof(cl_mem), &buf1);    CHECK_ERROR(err);
-			if (kernel_event[2] != NULL)
-				err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel_2, 2, NULL, global_size, local_size, 1, &kernel_event[2], &kernel_event[0]);
-			else
-				err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel_2, 2, NULL, global_size, local_size, 0, NULL, &kernel_event[0]);        CHECK_ERROR(err);
-			time_t start, end;
-			start = clock();
+		float* input1 = inputs + i * batch_num * d1 * n * n;
+		float* output1 = outputs + i * batch_num * d2 * n * n;
+		err = clEnqueueWriteBuffer(kernel_queue, buf1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input1, 0, NULL, NULL);    CHECK_ERROR(err);
+		err = clSetKernelArg(convolution_kernel_2, 0, sizeof(cl_mem), &buf1);    CHECK_ERROR(err);
+		if (kernel_event[2] != NULL)
+			err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel_2, 2, NULL, global_size, local_size, 1, &kernel_event[2], &kernel_event[0]);
+		else
+			err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel_2, 2, NULL, global_size, local_size, 0, NULL, &kernel_event[0]);        CHECK_ERROR(err);
+		err = clEnqueueReadBuffer(write_queue, buf2, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d2 * n * n), output1, 1, &kernel_event[0], &kernel_event[1]);	CHECK_ERROR(err);
 
-			err = clEnqueueReadBuffer(write_queue, buf2, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d2 * n * n), output1, 1, &kernel_event[0], &kernel_event[1]);	CHECK_ERROR(err);
-			end = clock();
-			printf("Elapsed time: %f sec\n", (double)(end - start) / CLK_TCK);
-			////////kernel2///////
-			float* input2 = inputs + k * batch_num * d1 * n * n;
-			float* output2 = outputs + k * batch_num * d2 * n * n;
-			err = clEnqueueWriteBuffer(kernel_queue, buf1_1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input2, 0, NULL, NULL);    CHECK_ERROR(err);
-			err = clSetKernelArg(convolution_kernel_22, 0, sizeof(cl_mem), &buf1_1);    CHECK_ERROR(err);
-			err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel_22, 2, NULL, global_size, local_size, 1, &kernel_event[0], &kernel_event[2]);	CHECK_ERROR(err);
-			err = clEnqueueReadBuffer(write_queue, buf2_1, CL_FALSE, 0,
-				sizeof(cl_float) * (batch_num * d2 * n * n), output2, 1, &kernel_event[2], &kernel_event[3]);	CHECK_ERROR(err);
-		}
+		////////kernel2///////
+		float* input2 = inputs + k * batch_num * d1 * n * n;
+		float* output2 = outputs + k * batch_num * d2 * n * n;
+		err = clEnqueueWriteBuffer(kernel_queue, buf1_1, CL_TRUE, 0, sizeof(cl_float) * (batch_num * d1 * n * n), input2, 0, NULL, NULL);    CHECK_ERROR(err);
+		err = clSetKernelArg(convolution_kernel_22, 0, sizeof(cl_mem), &buf1_1);    CHECK_ERROR(err);
+		err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel_22, 2, NULL, global_size, local_size, 1, &kernel_event[0], &kernel_event[2]);	CHECK_ERROR(err);
+		err = clEnqueueReadBuffer(write_queue, buf2_1, CL_FALSE, 0,
+			sizeof(cl_float) * (batch_num * d2 * n * n), output2, 1, &kernel_event[2], &kernel_event[3]);	CHECK_ERROR(err);
 	}
 
 	clFinish(write_queue);
@@ -452,7 +445,6 @@ void cnn(float* images, float* network, int* labels, float* confidences, int num
 	float* layer[21];
 	for (int i = 0; i < 21; ++i) {
 		layer[i] = (float*)malloc(sizeof(float) * OUTPUT_DIM[i] * NBYN[i] * NBYN[i] * PARALLEL);
-		//layer[i] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[i] * NBYN[i] * NBYN[i] * PARALLEL, 0, NULL, NULL, err);
 
 		if (layer[i] == NULL) {
 			perror("malloc error");
@@ -462,91 +454,32 @@ void cnn(float* images, float* network, int* labels, float* confidences, int num
 
 	// run network
 	for (int i = 0; i < num_of_image; i += PARALLEL) {
-		int j = 0;
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(images, layer[0], w[0], b[0], INPUT_DIM[0], OUTPUT_DIM[0], NBYN[0]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[0], layer[1], w[1], b[1], INPUT_DIM[1], OUTPUT_DIM[1], NBYN[1]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[1], layer[2], INPUT_DIM[2], NBYN[2]);
 
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[2], layer[3], w[3], b[3], INPUT_DIM[3], OUTPUT_DIM[3], NBYN[3]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[3], layer[4], w[4], b[4], INPUT_DIM[4], OUTPUT_DIM[4], NBYN[4]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[4], layer[5], INPUT_DIM[5], NBYN[5]);
 
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[5], layer[6], w[6], b[6], INPUT_DIM[6], OUTPUT_DIM[6], NBYN[6]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[6], layer[7], w[7], b[7], INPUT_DIM[7], OUTPUT_DIM[7], NBYN[7]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[7], layer[8], w[8], b[8], INPUT_DIM[8], OUTPUT_DIM[8], NBYN[8]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[8], layer[9], INPUT_DIM[9], NBYN[9]);
 
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[9], layer[10], w[10], b[10], INPUT_DIM[10], OUTPUT_DIM[10], NBYN[10]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[10], layer[11], w[11], b[11], INPUT_DIM[11], OUTPUT_DIM[11], NBYN[11]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[11], layer[12], w[12], b[12], INPUT_DIM[12], OUTPUT_DIM[12], NBYN[12]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[12], layer[13], INPUT_DIM[13], NBYN[13]);
 
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[13], layer[14], w[14], b[14], INPUT_DIM[14], OUTPUT_DIM[14], NBYN[14]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[14], layer[15], w[15], b[15], INPUT_DIM[15], OUTPUT_DIM[15], NBYN[15]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[15], layer[16], w[16], b[16], INPUT_DIM[16], OUTPUT_DIM[16], NBYN[16]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[16], layer[17], INPUT_DIM[17], NBYN[17]);
 
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		fc_layer(layer[17], layer[18], w[18], b[18], INPUT_DIM[18], OUTPUT_DIM[18]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		fc_layer(layer[18], layer[19], w[19], b[19], INPUT_DIM[19], OUTPUT_DIM[19]);
-
-		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
-		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		fc_layer(layer[19], layer[20], w[20], b[20], INPUT_DIM[20], OUTPUT_DIM[20]);
-
 
 		float* result;
 		for (int j = 0; j < PARALLEL; ++j) {
@@ -557,7 +490,6 @@ void cnn(float* images, float* network, int* labels, float* confidences, int num
 		}
 		images += 32 * 32 * 3 * PARALLEL;
 	}
-
 
 	//for (int i = 0; i < 21; ++i) {
 	//	free(layer[i]);
