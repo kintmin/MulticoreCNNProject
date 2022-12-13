@@ -30,7 +30,7 @@ const int batch_num = 50;
 if (err == CL_BUILD_PROGRAM_FAILURE) { \
 size_t log_size; \
 clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size); \
-printf("·Î±×Å©±â: %zu\n", log_size); \
+printf("ï¿½Î±ï¿½Å©ï¿½ï¿½: %zu\n", log_size); \
 char *log; \
 MALLOC(log, char, log_size); \
 clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, log_size, log, NULL); \
@@ -174,7 +174,7 @@ cl_mem buf1, buf1_1, buf2, buf2_1, buf3, buf4;
 void cnn_init() {
 	err = clGetPlatformIDs(1, &platform, NULL);
 	CHECK_ERROR(err);
-	// device Á¤º¸ °¡Á®¿À±â (GPU)
+	// device ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (GPU)
 	err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL);
 	CHECK_ERROR(err);
 
@@ -288,7 +288,7 @@ static void convolution_layer(float* inputs, float* outputs, float* filters, flo
 		}
 	}
 	else {
-		
+
 		err = clEnqueueWriteBuffer(kernel_queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
 		err = clEnqueueWriteBuffer(kernel_queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
 
@@ -320,7 +320,7 @@ static void convolution_layer(float* inputs, float* outputs, float* filters, flo
 				err = clEnqueueNDRangeKernel(kernel_queue, convolution_kernel_2, 2, NULL, global_size, local_size, 0, NULL, &kernel_event[0]);        CHECK_ERROR(err);
 			time_t start, end;
 			start = clock();
-			
+
 			err = clEnqueueReadBuffer(write_queue, buf2, CL_FALSE, 0, sizeof(cl_float) * (batch_num * d2 * n * n), output1, 1, &kernel_event[0], &kernel_event[1]);	CHECK_ERROR(err);
 			end = clock();
 			printf("Elapsed time: %f sec\n", (double)(end - start) / CLK_TCK);
@@ -453,7 +453,7 @@ void cnn(float* images, float* network, int* labels, float* confidences, int num
 	for (int i = 0; i < 21; ++i) {
 		layer[i] = (float*)malloc(sizeof(float) * OUTPUT_DIM[i] * NBYN[i] * NBYN[i] * PARALLEL);
 		//layer[i] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[i] * NBYN[i] * NBYN[i] * PARALLEL, 0, NULL, NULL, err);
-		
+
 		if (layer[i] == NULL) {
 			perror("malloc error");
 		}
@@ -462,32 +462,89 @@ void cnn(float* images, float* network, int* labels, float* confidences, int num
 
 	// run network
 	for (int i = 0; i < num_of_image; i += PARALLEL) {
-		layer[0] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[0] * NBYN[0] * NBYN[0] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		int j = 0;
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(images, layer[0], w[0], b[0], INPUT_DIM[0], OUTPUT_DIM[0], NBYN[0]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[0], layer[1], w[1], b[1], INPUT_DIM[1], OUTPUT_DIM[1], NBYN[1]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[1], layer[2], INPUT_DIM[2], NBYN[2]);
 
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[2], layer[3], w[3], b[3], INPUT_DIM[3], OUTPUT_DIM[3], NBYN[3]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[3], layer[4], w[4], b[4], INPUT_DIM[4], OUTPUT_DIM[4], NBYN[4]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[4], layer[5], INPUT_DIM[5], NBYN[5]);
 
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[5], layer[6], w[6], b[6], INPUT_DIM[6], OUTPUT_DIM[6], NBYN[6]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[6], layer[7], w[7], b[7], INPUT_DIM[7], OUTPUT_DIM[7], NBYN[7]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[7], layer[8], w[8], b[8], INPUT_DIM[8], OUTPUT_DIM[8], NBYN[8]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[8], layer[9], INPUT_DIM[9], NBYN[9]);
 
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[9], layer[10], w[10], b[10], INPUT_DIM[10], OUTPUT_DIM[10], NBYN[10]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[10], layer[11], w[11], b[11], INPUT_DIM[11], OUTPUT_DIM[11], NBYN[11]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[11], layer[12], w[12], b[12], INPUT_DIM[12], OUTPUT_DIM[12], NBYN[12]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[12], layer[13], INPUT_DIM[13], NBYN[13]);
 
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[13], layer[14], w[14], b[14], INPUT_DIM[14], OUTPUT_DIM[14], NBYN[14]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[14], layer[15], w[15], b[15], INPUT_DIM[15], OUTPUT_DIM[15], NBYN[15]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		convolution_layer(layer[15], layer[16], w[16], b[16], INPUT_DIM[16], OUTPUT_DIM[16], NBYN[16]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		pooling_layer(layer[16], layer[17], INPUT_DIM[17], NBYN[17]);
 
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		fc_layer(layer[17], layer[18], w[18], b[18], INPUT_DIM[18], OUTPUT_DIM[18]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		fc_layer(layer[18], layer[19], w[19], b[19], INPUT_DIM[19], OUTPUT_DIM[19]);
+
+		layer[j] = clEnqueueMapBuffer(kernel_queue, buf2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(float) * OUTPUT_DIM[j] * NBYN[j] * NBYN[j] * PARALLEL, 0, NULL, NULL, err);		CHECK_ERROR(err);
+		clEnqueueUnmapMemObject(kernel_queue, buf2, layer[j++], 0, NULL, NULL);
 		fc_layer(layer[19], layer[20], w[20], b[20], INPUT_DIM[20], OUTPUT_DIM[20]);
 
 
@@ -502,9 +559,7 @@ void cnn(float* images, float* network, int* labels, float* confidences, int num
 	}
 
 
-	/*clEnqueueUnmapMemObject(kernel_queue, buf2, layer[0], 0 ,NULL, NULL);
-	for (int i = 0; i < 21; ++i) {
-		free(layer[i]);
-	}*/
+	//for (int i = 0; i < 21; ++i) {
+	//	free(layer[i]);
+	//}
 }
-
