@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include "cnn.h"
 
-const int PARALLEL = 60;
+const int PARALLEL = 2;
 
 #define CHECK_ERROR(err) \
     if(err != CL_SUCCESS) { \
@@ -114,7 +114,7 @@ cl_program fc_program;
 cl_kernel convolution_kernel, reduction_kernel;
 cl_kernel pooling_kernel;
 cl_kernel fc_kernel;
-cl_mem buf1, buf2,  buf3, buf4, buf_n;
+cl_mem buf1, buf2, buf3, buf4, buf_n;
 cl_mem *input_buf, *output_buf;
 
 void cnn_init() {
@@ -132,8 +132,8 @@ void cnn_init() {
 	CHECK_ERROR(err);
 
 	size_t source_size;
-	const char *source_code = GetSourceCode("convolution_kernel.cl", &source_size);
-//	const char *source_code = GetSourceCode("tiled_convolution_kernel.cl", &source_size);
+	//const char *source_code = GetSourceCode("convolution_kernel.cl", &source_size);
+	const char *source_code = GetSourceCode("tiled_convolution_kernel.cl", &source_size);
 	convolution_program = clCreateProgramWithSource(context, 1, (const char **)&source_code, &source_size, &err);
 	CHECK_ERROR(err);
 
@@ -160,8 +160,8 @@ void cnn_init() {
 	convolution_kernel = clCreateKernel(convolution_program, "convolution", &err);
 	CHECK_ERROR(err);
 
-	//reduction_kernel = clCreateKernel(convolution_program, "reduction", &err);
-	//CHECK_ERROR(err);
+	reduction_kernel = clCreateKernel(convolution_program, "reduction", &err);
+	CHECK_ERROR(err);
 
 	pooling_kernel = clCreateKernel(pooling_program, "pooling", &err);
 	CHECK_ERROR(err);
@@ -185,6 +185,8 @@ void cnn_init() {
 static void convolution_layer(float *filters, float *biases, int d2, int d1, int n) {
 	size_t global_size[] = { PARALLEL * d1, d2 * n * n };
 	size_t local_size[] = { d1, 1 };
+	
+
 
 	clEnqueueWriteBuffer(queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);
@@ -206,7 +208,8 @@ static void tiled_convolution_layer(float *filters, float *biases, int d2, int d
 	size_t global_size[] = { PARALLEL * d2, d1 * n * n };
 	size_t local_size[] = { 1, n * n };
 
-	err = clEnqueueWriteBuffer(queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
+	err = clEnqueueWriteBuffer(queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);
+	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
 
 	err = clSetKernelArg(convolution_kernel, 0, sizeof(cl_mem), input_buf); CHECK_ERROR(err);
 	err = clSetKernelArg(convolution_kernel, 1, sizeof(cl_mem), output_buf); CHECK_ERROR(err);
@@ -220,8 +223,6 @@ static void tiled_convolution_layer(float *filters, float *biases, int d2, int d
 	MEM_SWAP(input_buf, output_buf);
 
 	local_size[1] = d1;
-	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
-
 	err = clSetKernelArg(reduction_kernel, 0, sizeof(cl_mem), input_buf); CHECK_ERROR(err);
 	err = clSetKernelArg(reduction_kernel, 1, sizeof(cl_mem), output_buf); CHECK_ERROR(err);
 	err = clSetKernelArg(reduction_kernel, 2, sizeof(cl_mem), &buf4); CHECK_ERROR(err);
@@ -276,27 +277,29 @@ void cnn(float *images, float **network, int *labels, float *confidences, int nu
 	{
 		err = clEnqueueWriteBuffer(queue, *input_buf, CL_TRUE, 0, sizeof(cl_float) * PARALLEL * 3072, images + i * 3072, 0, NULL, NULL);
 
-		convolution_layer(network[0], network[1], 64, 3, 32);
-		convolution_layer(network[2], network[3], 64, 64, 32);
+		printf("%p ", network[0]);
+		tiled_convolution_layer(network[0], network[1], 64, 3, 32);
+		printf("\n%p ", network[2]);
+		tiled_convolution_layer(network[2], network[3], 64, 64, 32);
 		pooling_layer(64, 16);
 
-		convolution_layer(network[4], network[5], 128, 64, 16);
-		convolution_layer(network[6], network[7], 128, 128, 16);
+		tiled_convolution_layer(network[4], network[5], 128, 64, 16);
+		tiled_convolution_layer(network[6], network[7], 128, 128, 16);
 		pooling_layer(128, 8);
 
-		convolution_layer(network[8], network[9], 256, 128, 8);
-		convolution_layer(network[10], network[11], 256, 256, 8);
-		convolution_layer(network[12], network[13], 256, 256, 8);
+		tiled_convolution_layer(network[8], network[9], 256, 128, 8);
+		tiled_convolution_layer(network[10], network[11], 256, 256, 8);
+		tiled_convolution_layer(network[12], network[13], 256, 256, 8);
 		pooling_layer(256, 4);
 
-		convolution_layer(network[14], network[15], 512, 256, 4);
-		convolution_layer(network[16], network[17], 512, 512, 4);
-		convolution_layer(network[18], network[19], 512, 512, 4);
+		tiled_convolution_layer(network[14], network[15], 512, 256, 4);
+		tiled_convolution_layer(network[16], network[17], 512, 512, 4);
+		tiled_convolution_layer(network[18], network[19], 512, 512, 4);
 		pooling_layer(512, 2);
 
-		convolution_layer(network[20], network[21], 512, 512, 2);
-		convolution_layer(network[22], network[23], 512, 512, 2);
-		convolution_layer(network[24], network[25], 512, 512, 2);
+		tiled_convolution_layer(network[20], network[21], 512, 512, 2);
+		tiled_convolution_layer(network[22], network[23], 512, 512, 2);
+		tiled_convolution_layer(network[24], network[25], 512, 512, 2);
 		pooling_layer(512, 1);
 
 		fc_layer(network[26], network[27], 512, 512);
