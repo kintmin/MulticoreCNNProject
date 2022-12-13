@@ -182,8 +182,8 @@ void cnn_init() {
 
 // input is (P, D1, N, N) and output is (P, D2, N, N)
 static void convolution_layer(float *filters, float *biases, int d2, int d1, int n) {
-	size_t global_size[] = { PARALLEL * d1, d2 * n * n };
-	size_t local_size[] = { d1, 1 };
+	size_t global_size[] = { PARALLEL * 1, d2 * n * n * d1};
+	size_t local_size[] = { PARALLEL, 1 };
 	
 	err = clEnqueueWriteBuffer(queue, buf3, CL_TRUE, 0, sizeof(cl_float) * (d2 * d1 * 3 * 3), filters, 0, NULL, NULL);    CHECK_ERROR(err);
 	err = clEnqueueWriteBuffer(queue, buf4, CL_TRUE, 0, sizeof(cl_float) * d2, biases, 0, NULL, NULL);    CHECK_ERROR(err);
