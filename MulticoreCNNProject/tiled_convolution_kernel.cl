@@ -8,7 +8,7 @@ __kernel void convolution(__global float *inputs, __global float *outputs, __glo
 	int oc = g_i % d2;
 
 	const int g_j = get_global_id(1);
-	int ic = g_i / (n * n);
+	int ic = g_j / (n * n);
 	int img_i = g_j / n % n;
 	int img_j = g_j % n;
 
@@ -24,7 +24,7 @@ __kernel void convolution(__global float *inputs, __global float *outputs, __glo
 		for (int j = 0; j < 3; ++j) {
 			int x = img_i + i - 1;
 			int y = img_j + j - 1;
-			int cur_img_idx = x * n + y + i_idx;
+			int cur_img_idx = x * n + y;
 			int cur_f_idx = i * 3 + j + f_idx;
 			if (x >= 0 && x < n && y >= 0 && y < n)
 				sum += l_mem[cur_img_idx] * filters[cur_f_idx];
