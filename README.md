@@ -2,7 +2,7 @@
   세종대학교 멀티코어프로그래밍 프로젝트
   
   ![image](https://user-images.githubusercontent.com/40791869/215701734-6c011025-16af-4b8e-8cf5-ded128370812.png)
-  OpenCL 병렬 프로그래밍을 활용한 CNN(Convolutional Neural Network) 가속화하여 원하는 결과를 빠르게 도출해내는 프로젝트입니다.
+  OpenCL 병렬 프로그래밍을 활용한 CNN(Convolutional Neural Network)을 가속화하여 원하는 결과를 빠르게 도출해내는 프로젝트입니다.
 
   <br/>
   
